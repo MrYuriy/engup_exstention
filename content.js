@@ -30,16 +30,23 @@ function createButton(x, y, selectedText, sentence) {
         const payload = {
             word: selectedText,
             sentence: sentence,
-            user_id: 1, // додати логіку користувача пізніше
         };
 
         console.log("Sending:", payload);
 
         try {
+            const result = await chrome.storage.local.get("token");
+            const token = result.token;
+            console.log("Retrieved token:", token);
+            if (!token) {
+                alert("❌ Ви не авторизовані! Спочатку увійдіть у popup.");
+                return;
+            }
             const response = await fetch("http://127.0.0.1:8000/words/", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token,
                 },
                 body: JSON.stringify(payload),
             });

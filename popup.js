@@ -1,23 +1,39 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const input = document.getElementById("apiUrl");
-  const saveBtn = document.getElementById("saveBtn");
+document.getElementById("loginBtn").addEventListener("click", async () => {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const status = document.getElementById("status");
 
-  // Завантажуємо існуючий URL
-  chrome.storage.sync.get("apiUrl", (data) => {
-    if (data.apiUrl) {
-      input.value = data.apiUrl;
+    if (!username || !password) {
+        status.textContent = "❌ Введіть логін і пароль";
+        return;
     }
-  });
 
-  // Зберігаємо новий URL
-  saveBtn.addEventListener("click", () => {
-    const url = input.value.trim();
-    if (url) {
-      chrome.storage.sync.set({ apiUrl: url }, () => {
-        alert("API URL збережено!");
-      });
-    } else {
-      alert("Будь ласка, введіть коректний URL.");
+    try {
+        const formData = new FormData();
+        formData.append('username', username);
+        formData.append('password', password);
+
+        const response = await fetch("http://127.0.0.1:8000/users/login", {
+            method: "POST",
+            body: formData
+        });
+
+     if (!response.ok) {
+            status.textContent = "❌ Помилка авторизації";
+            return;
+        }
+
+        const data = await response.json();
+        const token = data.access_token;
+
+        await chrome.storage.local.set({ token: token });
+
+        const result = await chrome.storage.local.get("token");
+        console.log("🔑 Token збережений:", result.token);
+
+        status.textContent = "✅ Успішний вхід!";
+    } catch (err) {
+        console.error("⚠️ Fetch error:", err);
+        status.textContent = "⚠️ Помилка мережі";
     }
-  });
 });

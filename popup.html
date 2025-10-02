@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Налаштування API</title>
+  <meta charset="UTF-8">
+  <title>Login</title>
   <style>
-    body { font-family: Arial, sans-serif; width: 250px; padding: 10px; }
-    input { width: 100%; padding: 5px; margin-top: 10px; }
-    button { margin-top: 10px; width: 100%; padding: 8px; background: #4CAF50; color: white; border: none; }
-    button:hover { background: #45a049; }
+    body { font-family: Arial; width: 250px; padding: 10px; }
+    input { width: 100%; margin: 5px 0; padding: 5px; }
+    button { width: 100%; padding: 8px; margin-top: 10px; }
   </style>
 </head>
 <body>
-  <h3>API URL</h3>
-  <input type="text" id="apiUrl" placeholder="https://your-server.com/api/word">
-  <button id="saveBtn">Save</button>
+  <h3>Login</h3>
+  <input id="username" type="text" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+  <button id="loginBtn">Login</button>
+  <p id="status"></p>
 
   <script src="popup.js"></script>
 </body>
