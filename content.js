@@ -42,7 +42,7 @@ function createButton(x, y, selectedText, sentence) {
                 alert("❌ Ви не авторизовані! Спочатку увійдіть у popup.");
                 return;
             }
-            const response = await fetch("http://127.0.0.1:8000/words/", {
+            const response = await fetch("https://engup-backend.onrender.com/words/", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -103,7 +103,7 @@ function handleSelection() {
     let nodeText = range.startContainer.textContent || "";
 
     const sentences = nodeText
-        .split(/(?<=[.!?;:])\s+/) // ділимо по . ! ? ; :
+        .split(/(?<=[.!?;:])\s+/)
         .map(s => s.trim().replace(/^[;:,"'\s]+|[;:,"'\s]+$/g, ""))
         .filter(s => s.length > 0);
 

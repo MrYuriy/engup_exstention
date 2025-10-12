@@ -13,7 +13,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
         formData.append('username', username);
         formData.append('password', password);
 
-        const response = await fetch("http://127.0.0.1:8000/users/login", {
+        const response = await fetch("https://engup-backend.onrender.com/users/login", {
             method: "POST",
             body: formData
         });
