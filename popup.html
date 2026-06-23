@@ -1,21 +1,44 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Login</title>
-  <style>
-    body { font-family: Arial; width: 250px; padding: 10px; }
-    input { width: 100%; margin: 5px 0; padding: 5px; }
-    button { width: 100%; padding: 8px; margin-top: 10px; }
-  </style>
-</head>
-<body>
-  <h3>Login</h3>
-  <input id="username" type="text" placeholder="Username">
-  <input id="password" type="password" placeholder="Password">
-  <button id="loginBtn">Login</button>
-  <p id="status"></p>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <title>LangUp</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="brand">
+      <span class="brand__logo">L</span>
+      <span class="brand__name">LangUp</span>
+    </header>
 
-  <script src="popup.js"></script>
-</body>
+    <!-- LOGIN -->
+    <section id="login-view" class="view hidden">
+      <p class="hint">Увійди, щоб зберігати виділені слова у свій словник.</p>
+      <button id="login-btn" class="btn btn--google">
+        <span class="g">G</span> Увійти через Google
+      </button>
+      <p id="status" class="status"></p>
+      <details class="setup">
+        <summary>Налаштування OAuth</summary>
+        <p>Додай цей Redirect URI у Google OAuth client:</p>
+        <code id="redirect-uri">—</code>
+      </details>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="profile-view" class="view hidden">
+      <div class="profile">
+        <div id="avatar" class="avatar">?</div>
+        <div class="profile__id">
+          <strong id="p-name">—</strong>
+          <span id="p-email" class="muted">—</span>
+        </div>
+      </div>
+      <p class="tip">Виділи слово на будь-якій сторінці та натисни «+», щоб зберегти.</p>
+      <button id="logout-btn" class="btn btn--ghost">Вийти</button>
+    </section>
+
+    <script src="config.js"></script>
+    <script src="popup.js"></script>
+  </body>
 </html>

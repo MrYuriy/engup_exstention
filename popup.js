@@ -1,39 +1,74 @@
-document.getElementById("loginBtn").addEventListener("click", async () => {
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value.trim();
-    const status = document.getElementById("status");
+const $ = (id) => document.getElementById(id);
 
-    if (!username || !password) {
-        status.textContent = "❌ Введіть логін і пароль";
-        return;
-    }
+function setStatus(text) {
+  $("status").textContent = text || "";
+}
 
+function render(user) {
+  if (user) {
+    $("p-name").textContent = user.full_name || "Без імені";
+    $("p-email").textContent = user.email;
+    $("avatar").textContent = (user.full_name || user.email || "?").trim().charAt(0).toUpperCase();
+    $("login-view").classList.add("hidden");
+    $("profile-view").classList.remove("hidden");
+  } else {
+    $("profile-view").classList.add("hidden");
+    $("login-view").classList.remove("hidden");
+  }
+}
+
+async function loadProfile() {
+  const { access_token } = await langupGetTokens();
+  if (!access_token) return null;
+  const resp = await langupApiFetch("/auth/me");
+  return resp.ok ? resp.json() : null;
+}
+
+// Get a Google ID token via the extension auth flow, then exchange it with our backend.
+async function signInWithGoogle() {
+  const redirectUri = chrome.identity.getRedirectURL();
+  const nonce = Math.random().toString(36).slice(2) + Date.now();
+  const params = new URLSearchParams({
+    client_id: LANGUP.GOOGLE_CLIENT_ID,
+    response_type: "id_token",
+    redirect_uri: redirectUri,
+    scope: "openid email profile",
+    nonce,
+    prompt: "select_account",
+  });
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+
+  const redirectedTo = await chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true });
+  const match = /[#&]id_token=([^&]+)/.exec(redirectedTo || "");
+  if (!match) throw new Error("Google не повернув id_token");
+
+  const resp = await fetch(`${LANGUP.API_BASE}/auth/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id_token: match[1] }),
+  });
+  if (!resp.ok) throw new Error("Бекенд відхилив токен (" + resp.status + ")");
+  await langupSetTokens(await resp.json());
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  $("redirect-uri").textContent = chrome.identity.getRedirectURL();
+
+  $("login-btn").addEventListener("click", async () => {
+    setStatus("Відкриваю Google…");
     try {
-        const formData = new FormData();
-        formData.append('username', username);
-        formData.append('password', password);
-
-        const response = await fetch("https://engup-backend.onrender.com/users/login", {
-            method: "POST",
-            body: formData
-        });
-
-     if (!response.ok) {
-            status.textContent = "❌ Помилка авторизації";
-            return;
-        }
-
-        const data = await response.json();
-        const token = data.access_token;
-
-        await chrome.storage.local.set({ token: token });
-
-        const result = await chrome.storage.local.get("token");
-        console.log("🔑 Token збережений:", result.token);
-
-        status.textContent = "✅ Успішний вхід!";
+      await signInWithGoogle();
+      render(await loadProfile());
+      setStatus("");
     } catch (err) {
-        console.error("⚠️ Fetch error:", err);
-        status.textContent = "⚠️ Помилка мережі";
+      setStatus("Помилка входу: " + err.message);
     }
+  });
+
+  $("logout-btn").addEventListener("click", async () => {
+    await langupClearTokens();
+    render(null);
+  });
+
+  render(await loadProfile());
 });

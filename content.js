@@ -1,133 +1,128 @@
+// Content script: show an "add to LangUp" button next to the selected word and
+// send the capture to the background worker (which talks to the API).
 let button = null;
 
+function pageLanguage() {
+  const raw = document.documentElement.lang || navigator.language || "en";
+  const code = raw.slice(0, 2).toLowerCase();
+  return code.length >= 2 ? code : "en";
+}
+
+function setButtonState(text, color) {
+  if (!button) return;
+  button.textContent = text;
+  button.style.color = color || "#3b5bdb";
+}
+
 function createButton(x, y, selectedText, sentence) {
-    removeButton();
+  removeButton();
 
-    button = document.createElement("button");
-    button.textContent = "+";
-    button.style.position = "absolute";
-    button.style.left = x + "px";
-    button.style.top = y + "px";
-    button.style.zIndex = "10000";
-    button.style.background = "white";
-    button.style.border = "1px solid #ccc";
-    button.style.borderRadius = "50%";
-    button.style.width = "30px";
-    button.style.height = "30px";
-    button.style.display = "flex";
-    button.style.alignItems = "center";
-    button.style.justifyContent = "center";
-    button.style.cursor = "pointer";
-    button.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
-    button.style.userSelect = "none";
+  button = document.createElement("button");
+  button.textContent = "+";
+  Object.assign(button.style, {
+    position: "absolute",
+    left: x + "px",
+    top: y + "px",
+    zIndex: "2147483647",
+    background: "#fff",
+    color: "#3b5bdb",
+    border: "1px solid #c7d0ff",
+    borderRadius: "50%",
+    width: "30px",
+    height: "30px",
+    fontSize: "18px",
+    fontWeight: "700",
+    lineHeight: "1",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+    userSelect: "none",
+    padding: "0",
+  });
+  button.title = `Зберегти "${selectedText}" у LangUp`;
 
-    document.body.appendChild(button);
+  document.body.appendChild(button);
 
-    button.addEventListener("click", async function (e) {
-        e.stopPropagation();
-        e.preventDefault();
+  button.addEventListener("click", async function (e) {
+    e.stopPropagation();
+    e.preventDefault();
+    setButtonState("…", "#888");
 
-        const payload = {
-            word: selectedText,
-            sentence: sentence,
-        };
+    const payload = {
+      word: selectedText,
+      sentence: sentence,
+      language: pageLanguage(),
+      url: location.href,
+    };
 
-        console.log("Sending:", payload);
-
-        try {
-            const result = await chrome.storage.local.get("token");
-            const token = result.token;
-            console.log("Retrieved token:", token);
-            if (!token) {
-                alert("❌ Ви не авторизовані! Спочатку увійдіть у popup.");
-                return;
-            }
-            const response = await fetch("https://engup-backend.onrender.com/words/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + token,
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                console.error("❌ Server error:", response.status, await response.text());
-            } else {
-                const data = await response.json();
-                console.log("✅ Server response:", data);
-            }
-        } catch (err) {
-            console.error("⚠️ Fetch error:", err);
-        }
-
-        removeButton();
-        return false;
+    chrome.runtime.sendMessage({ type: "CAPTURE_WORD", payload }, (res) => {
+      if (chrome.runtime.lastError || !res) {
+        setButtonState("✗", "#e03131");
+      } else if (res.ok) {
+        setButtonState("✓", "#2f9e44");
+      } else if (res.error === "not_authed") {
+        setButtonState("🔒", "#e8590c");
+        alert("Увійдіть через Google у вікні розширення (натисніть на іконку LangUp).");
+      } else {
+        setButtonState("✗", "#e03131");
+      }
+      setTimeout(removeButton, 900);
     });
+  });
 
-    setTimeout(() => {
-        document.addEventListener("click", documentClickHandler);
-    }, 0);
+  setTimeout(() => document.addEventListener("click", documentClickHandler), 0);
 }
 
 function documentClickHandler(e) {
-    if (button && e.target !== button) {
-        removeButton();
-    }
+  if (button && e.target !== button) removeButton();
 }
 
 function removeButton() {
-    if (button) {
-        button.remove();
-        button = null;
-        document.removeEventListener("click", documentClickHandler);
-    }
+  if (button) {
+    button.remove();
+    button = null;
+    document.removeEventListener("click", documentClickHandler);
+  }
 }
 
 function handleSelection() {
-    const selection = window.getSelection();
-    const selectedText = selection.toString().trim();
+  const selection = window.getSelection();
+  const selectedText = selection.toString().trim();
 
-    if (!selectedText || selection.rangeCount === 0) {
-        removeButton();
-        return;
-    }
+  if (!selectedText || selection.rangeCount === 0) {
+    removeButton();
+    return;
+  }
 
-    const range = selection.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
+  const range = selection.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  if (rect.width === 0 && rect.height === 0) return;
 
-    if (rect.width === 0 && rect.height === 0) {
-        return;
-    }
+  const nodeText = range.startContainer.textContent || "";
+  const sentences = nodeText
+    .split(/(?<=[.!?;:])\s+/)
+    .map((s) => s.trim().replace(/^[;:,"'\s]+|[;:,"'\s]+$/g, ""))
+    .filter((s) => s.length > 0);
+  const sentence = sentences.find((s) => s.includes(selectedText)) || nodeText.trim();
 
-    let nodeText = range.startContainer.textContent || "";
+  const x = rect.right + window.scrollX + 5;
+  const y = rect.top + window.scrollY + rect.height / 2 - 15;
 
-    const sentences = nodeText
-        .split(/(?<=[.!?;:])\s+/)
-        .map(s => s.trim().replace(/^[;:,"'\s]+|[;:,"'\s]+$/g, ""))
-        .filter(s => s.length > 0);
-
-    let sentence = sentences.find(s => s.includes(selectedText)) || nodeText.trim();
-
-    const x = rect.right + window.scrollX + 5;
-    const y = rect.top + window.scrollY + rect.height / 2 - 15;
-
-    createButton(x, y, selectedText, sentence);
+  createButton(x, y, selectedText, sentence);
 }
 
-document.addEventListener("mouseup", function (e) {
-    if (button && button.contains(e.target)) return;
-    handleSelection();
+document.addEventListener("mouseup", (e) => {
+  if (button && button.contains(e.target)) return;
+  handleSelection();
 });
 
-document.addEventListener("dblclick", function (e) {
-    if (button && button.contains(e.target)) return;
-    handleSelection();
+document.addEventListener("dblclick", (e) => {
+  if (button && button.contains(e.target)) return;
+  handleSelection();
 });
 
-document.addEventListener("selectionchange", function () {
-    const selection = window.getSelection();
-    if (selection.toString().trim() === "") {
-        removeButton();
-    }
+document.addEventListener("selectionchange", () => {
+  if (window.getSelection().toString().trim() === "") removeButton();
 });
