@@ -3,7 +3,7 @@
   "name": "LangUp",
   "version": "2.0",
   "description": "Зберігай слова з вебсторінок у LangUp та вчи їх з контекстом.",
-  "permissions": ["storage", "identity", "activeTab"],
+  "permissions": ["storage", "identity", "activeTab", "contextMenus"],
   "host_permissions": ["https://langup-backend.onrender.com/*"],
   "background": {
     "service_worker": "background.js"
