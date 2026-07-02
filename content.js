@@ -55,6 +55,7 @@ function createButton(x, y, selectedText, sentence) {
       sentence: sentence,
       language: pageLanguage(),
       url: location.href,
+      title: document.title,
     };
 
     chrome.runtime.sendMessage({ type: "CAPTURE_WORD", payload }, (res) => {

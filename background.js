@@ -36,17 +36,23 @@ chrome.contextMenus.onClicked.addListener(async (info) => {
   else flashBadge("✗", "#e03131");
 });
 
-async function captureWord({ word, language }) {
+async function captureWord({ word, language, sentence, url, title }) {
   const { access_token } = await langupGetTokens();
   if (!access_token) return { ok: false, error: "not_authed" };
 
-  const resp = await langupApiFetch("/words", {
+  // Personal vocabulary: stores the word + its sentence/source for the user.
+  const resp = await langupApiFetch("/vocabulary", {
     method: "POST",
-    body: JSON.stringify({ lemma: word, language }),
+    body: JSON.stringify({
+      word,
+      language,
+      sentence: sentence || null,
+      source_url: url || null,
+      source_title: title || null,
+    }),
   });
 
   if (resp.ok) return { ok: true };
-  if (resp.status === 409) return { ok: true, duplicate: true }; // already in dictionary
   if (resp.status === 401) return { ok: false, error: "not_authed" };
   return { ok: false, error: String(resp.status) };
 }
