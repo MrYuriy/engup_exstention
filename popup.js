@@ -24,6 +24,22 @@ async function loadProfile() {
   return resp.ok ? resp.json() : null;
 }
 
+// Email + password sign-in/sign-up against our backend.
+async function passwordAuth(endpoint) {
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  const resp = await fetch(`${LANGUP.API_BASE}/auth/${endpoint}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!resp.ok) {
+    const body = await resp.json().catch(() => null);
+    throw new Error((body && body.detail) || "Помилка (" + resp.status + ")");
+  }
+  await langupSetTokens(await resp.json());
+}
+
 // Get a Google ID token via the extension auth flow, then exchange it with our backend.
 async function signInWithGoogle() {
   const redirectUri = chrome.identity.getRedirectURL();
@@ -53,6 +69,30 @@ async function signInWithGoogle() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   $("redirect-uri").textContent = chrome.identity.getRedirectURL();
+
+  $("password-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setStatus("Входжу…");
+    try {
+      await passwordAuth("login");
+      render(await loadProfile());
+      setStatus("");
+    } catch (err) {
+      setStatus("Помилка входу: " + err.message);
+    }
+  });
+
+  $("register-btn").addEventListener("click", async () => {
+    if (!$("password-form").reportValidity()) return;
+    setStatus("Створюю акаунт…");
+    try {
+      await passwordAuth("register");
+      render(await loadProfile());
+      setStatus("");
+    } catch (err) {
+      setStatus("Помилка реєстрації: " + err.message);
+    }
+  });
 
   $("login-btn").addEventListener("click", async () => {
     setStatus("Відкриваю Google…");
