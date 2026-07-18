@@ -1,7 +1,7 @@
 // Shared config + auth/token helpers. Loaded by the popup and imported by the
 // background service worker (importScripts). NOT used in the content script.
 const LANGUP = {
-  API_BASE: "https://langup-backend.onrender.com/api",
+  API_BASE: "https://langup.piatek-magazyn.com/api",
   GOOGLE_CLIENT_ID:
     "471613816800-9smmatdn665mn85tivimn9dh1iegto76.apps.googleusercontent.com",
 };
