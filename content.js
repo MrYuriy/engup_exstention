@@ -58,22 +58,37 @@ function createButton(x, y, selectedText, sentence) {
       title: document.title,
     };
 
-    chrome.runtime.sendMessage({ type: "CAPTURE_WORD", payload }, (res) => {
-      if (chrome.runtime.lastError || !res) {
-        setButtonState("✗", "#e03131");
-      } else if (res.ok) {
-        setButtonState("✓", "#2f9e44");
-      } else if (res.error === "not_authed") {
-        setButtonState("🔒", "#e8590c");
-        alert("Увійдіть через Google у вікні розширення (натисніть на іконку LangUp).");
-      } else {
-        setButtonState("✗", "#e03131");
-      }
-      setTimeout(removeButton, 900);
-    });
+    // A content script injected before the extension was reloaded/updated is
+    // orphaned: chrome.runtime is gone and every call throws "Extension context
+    // invalidated". Ask for a refresh instead of failing silently.
+    if (!chrome.runtime?.id) return warnStaleContext();
+
+    try {
+      chrome.runtime.sendMessage({ type: "CAPTURE_WORD", payload }, (res) => {
+        if (chrome.runtime.lastError || !res) {
+          setButtonState("✗", "#e03131");
+        } else if (res.ok) {
+          setButtonState("✓", "#2f9e44");
+        } else if (res.error === "not_authed") {
+          setButtonState("🔒", "#e8590c");
+          alert("Увійдіть через Google у вікні розширення (натисніть на іконку LangUp).");
+        } else {
+          setButtonState("✗", "#e03131");
+        }
+        setTimeout(removeButton, 900);
+      });
+    } catch {
+      warnStaleContext();
+    }
   });
 
   setTimeout(() => document.addEventListener("click", documentClickHandler), 0);
+}
+
+function warnStaleContext() {
+  setButtonState("⟳", "#e8590c");
+  alert("LangUp оновився — перезавантажте сторінку (F5), щоб зберігати слова.");
+  setTimeout(removeButton, 900);
 }
 
 function documentClickHandler(e) {
