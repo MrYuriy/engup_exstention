@@ -21,17 +21,55 @@ async function langupClearTokens() {
   await chrome.storage.local.remove(["access_token", "refresh_token"]);
 }
 
+async function langupLogout() {
+  // Tell the server too, otherwise the refresh token stays usable for a month.
+  const { refresh_token } = await langupGetTokens();
+  await langupClearTokens();
+  if (!refresh_token) return;
+  try {
+    await fetch(`${LANGUP.API_BASE}/auth/logout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token }),
+    });
+  } catch {
+    /* already signed out locally; nothing useful to do */
+  }
+}
+
+// Refresh tokens rotate: the server retires each one as it is used, and
+// replaying a spent token is treated as theft and ends every session. The popup
+// and the background worker both make calls, so refreshes are funnelled through
+// one promise instead of racing with the same token.
+let langupRefreshInFlight = null;
+
 async function langupRefresh() {
+  if (!langupRefreshInFlight) {
+    langupRefreshInFlight = langupDoRefresh().finally(() => (langupRefreshInFlight = null));
+  }
+  return langupRefreshInFlight;
+}
+
+async function langupDoRefresh() {
   const { refresh_token } = await langupGetTokens();
   if (!refresh_token) return false;
-  const resp = await fetch(`${LANGUP.API_BASE}/auth/refresh`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_token }),
-  });
-  if (!resp.ok) return false;
-  await langupSetTokens(await resp.json());
-  return true;
+  try {
+    const resp = await fetch(`${LANGUP.API_BASE}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token }),
+    });
+    if (!resp.ok) {
+      // The session is gone for good; dead tokens would only make every later
+      // request retry against them.
+      await langupClearTokens();
+      return false;
+    }
+    await langupSetTokens(await resp.json());
+    return true;
+  } catch {
+    return false; // network blip — keep the tokens and let the caller retry
+  }
 }
 
 // Authenticated fetch with a single transparent refresh retry on 401.

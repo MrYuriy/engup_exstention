@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   $("logout-btn").addEventListener("click", async () => {
-    await langupClearTokens();
+    await langupLogout();
     render(null);
   });
 
