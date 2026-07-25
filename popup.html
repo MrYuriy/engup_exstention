@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <title>LangUp</title>
@@ -13,33 +13,53 @@
 
     <!-- LOGIN -->
     <section id="login-view" class="view hidden">
-      <p class="hint">Увійди, щоб зберігати виділені слова у свій словник.</p>
+      <p class="hint">Sign in to save highlighted words to your dictionary.</p>
 
       <form id="password-form" class="form">
         <input id="email" type="email" placeholder="Email" autocomplete="email" required />
         <input
           id="password"
           type="password"
-          placeholder="Пароль"
+          placeholder="Password"
           autocomplete="current-password"
           minlength="8"
           required
         />
-        <button id="password-login-btn" type="submit" class="btn btn--primary">Увійти</button>
-        <button id="register-btn" type="button" class="btn btn--ghost">Зареєструватись</button>
+        <button id="password-login-btn" type="submit" class="btn btn--primary">Sign in</button>
+        <button id="register-btn" type="button" class="btn btn--ghost">Sign up</button>
       </form>
 
-      <div class="divider"><span>або</span></div>
+      <div class="divider"><span>or</span></div>
 
       <button id="login-btn" class="btn btn--google">
-        <span class="g">G</span> Увійти через Google
+        <span class="g">G</span> Sign in with Google
       </button>
       <p id="status" class="status"></p>
       <details class="setup">
-        <summary>Налаштування OAuth</summary>
-        <p>Додай цей Redirect URI у Google OAuth client:</p>
+        <summary>OAuth setup</summary>
+        <p>Add this Redirect URI to your Google OAuth client:</p>
         <code id="redirect-uri">—</code>
       </details>
+    </section>
+
+    <!-- NATIVE LANGUAGE (new accounts only) -->
+    <section id="lang-view" class="view hidden">
+      <p class="hint">Choose your native language. We use it to translate saved words for you.</p>
+      <form id="lang-form" class="form">
+        <select id="native-language" required>
+          <option value="" disabled selected>Select your native language…</option>
+          <option value="uk">Ukrainian</option>
+          <option value="pl">Polish</option>
+          <option value="en">English</option>
+          <option value="de">German</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="it">Italian</option>
+          <option value="pt">Portuguese</option>
+        </select>
+        <button type="submit" class="btn btn--primary">Continue</button>
+      </form>
+      <p id="lang-status" class="status"></p>
     </section>
 
     <!-- PROFILE -->
@@ -51,8 +71,8 @@
           <span id="p-email" class="muted">—</span>
         </div>
       </div>
-      <p class="tip">Виділи слово на будь-якій сторінці та натисни «+», щоб зберегти.</p>
-      <button id="logout-btn" class="btn btn--ghost">Вийти</button>
+      <p class="tip">Highlight a word on any page and click “+” to save it.</p>
+      <button id="logout-btn" class="btn btn--ghost">Sign out</button>
     </section>
 
     <script src="config.js"></script>

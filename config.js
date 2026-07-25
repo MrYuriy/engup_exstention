@@ -18,7 +18,19 @@ async function langupSetTokens(tokens) {
 }
 
 async function langupClearTokens() {
-  await chrome.storage.local.remove(["access_token", "refresh_token"]);
+  await chrome.storage.local.remove(["access_token", "refresh_token", "native_language"]);
+}
+
+// Cached "the account has picked a native language" flag. The popup writes it
+// after sign-in / language choice; the background worker reads it to gate saves.
+async function langupHasNativeLanguage() {
+  const { native_language } = await chrome.storage.local.get("native_language");
+  return !!native_language;
+}
+
+async function langupSetNativeLanguage(value) {
+  if (value) await chrome.storage.local.set({ native_language: value });
+  else await chrome.storage.local.remove("native_language");
 }
 
 async function langupLogout() {

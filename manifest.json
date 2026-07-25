@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "LangUp",
   "version": "2.0",
-  "description": "Зберігай слова з вебсторінок у LangUp та вчи їх з контекстом.",
+  "description": "Save words from web pages to LangUp and learn them in context.",
   "permissions": ["storage", "identity", "contextMenus"],
   "host_permissions": ["https://langup.piatek-magazyn.com/*"],
   "icons": {
@@ -15,7 +15,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "LangUp — зберегти слово",
+    "default_title": "LangUp — save a word",
     "default_icon": {
       "16": "icon-16.png",
       "48": "icon-48.png",

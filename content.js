@@ -41,7 +41,7 @@ function createButton(x, y, selectedText, sentence) {
     userSelect: "none",
     padding: "0",
   });
-  button.title = `Зберегти "${selectedText}" у LangUp`;
+  button.title = `Save "${selectedText}" to LangUp`;
 
   document.body.appendChild(button);
 
@@ -71,11 +71,16 @@ function createButton(x, y, selectedText, sentence) {
           setButtonState("✓", "#2f9e44");
         } else if (res.error === "not_authed") {
           setButtonState("🔒", "#e8590c");
-          alert("Увійдіть через Google у вікні розширення (натисніть на іконку LangUp).");
+          showBubble("Sign in to LangUp first — click the extension icon.");
+        } else if (res.error === "no_native_language") {
+          // Gentle, one-time nudge: the word is NOT saved until a language is set.
+          setButtonState("🌐", "#f08c00");
+          showBubble("Almost there! Open LangUp (click the icon) and choose your native language — we need it to translate your words.");
         } else {
           setButtonState("✗", "#e03131");
         }
-        setTimeout(removeButton, 900);
+        // Keep the button briefly; the bubble lives on its own and lingers longer.
+        setTimeout(removeButton, 1100);
       });
     } catch {
       warnStaleContext();
@@ -85,10 +90,37 @@ function createButton(x, y, selectedText, sentence) {
   setTimeout(() => document.addEventListener("click", documentClickHandler), 0);
 }
 
+// A soft, self-dismissing note next to the "+" — gentler than a blocking alert.
+function showBubble(message) {
+  if (!button) return;
+  const bubble = document.createElement("div");
+  bubble.textContent = message;
+  Object.assign(bubble.style, {
+    position: "absolute",
+    left: button.style.left,
+    top: parseInt(button.style.top, 10) + 36 + "px",
+    zIndex: "2147483647",
+    maxWidth: "230px",
+    background: "#1e2240",
+    color: "#e8eaf6",
+    border: "1px solid #6c8cff",
+    borderRadius: "10px",
+    padding: "9px 11px",
+    fontSize: "12px",
+    fontFamily: "system-ui, 'Segoe UI', Arial, sans-serif",
+    lineHeight: "1.4",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
+    userSelect: "none",
+    pointerEvents: "none",
+  });
+  document.body.appendChild(bubble);
+  setTimeout(() => bubble.remove(), 4000);
+}
+
 function warnStaleContext() {
   setButtonState("⟳", "#e8590c");
-  alert("LangUp оновився — перезавантажте сторінку (F5), щоб зберігати слова.");
-  setTimeout(removeButton, 900);
+  showBubble("LangUp was updated — reload the page (F5) to keep saving words.");
+  setTimeout(removeButton, 1100);
 }
 
 function documentClickHandler(e) {

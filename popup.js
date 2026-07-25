@@ -1,20 +1,35 @@
 const $ = (id) => document.getElementById(id);
 
+let currentUser = null;
+
 function setStatus(text) {
   $("status").textContent = text || "";
 }
 
-function render(user) {
-  if (user) {
-    $("p-name").textContent = user.full_name || "Без імені";
-    $("p-email").textContent = user.email;
-    $("avatar").textContent = (user.full_name || user.email || "?").trim().charAt(0).toUpperCase();
-    $("login-view").classList.add("hidden");
-    $("profile-view").classList.remove("hidden");
-  } else {
-    $("profile-view").classList.add("hidden");
-    $("login-view").classList.remove("hidden");
+function showView(id) {
+  for (const v of ["login-view", "lang-view", "profile-view"]) {
+    $(v).classList.toggle("hidden", v !== id);
   }
+}
+
+function renderProfile(user) {
+  $("p-name").textContent = user.full_name || "No name";
+  $("p-email").textContent = user.email;
+  $("avatar").textContent = (user.full_name || user.email || "?").trim().charAt(0).toUpperCase();
+  showView("profile-view");
+}
+
+// After any successful sign-in decide where to land: a brand-new account has no
+// native language yet, so it must pick one before it can use the dictionary.
+// An existing profile (e.g. created on the website) already has it and skips this.
+function routeAfterAuth(user) {
+  currentUser = user;
+  if (!user) return showView("login-view");
+  // Mirror the account's language into storage so the background worker can
+  // gate word saves without an extra round-trip.
+  langupSetNativeLanguage(user.native_language);
+  if (!user.native_language) return showView("lang-view");
+  renderProfile(user);
 }
 
 async function loadProfile() {
@@ -35,7 +50,7 @@ async function passwordAuth(endpoint) {
   });
   if (!resp.ok) {
     const body = await resp.json().catch(() => null);
-    throw new Error((body && body.detail) || "Помилка (" + resp.status + ")");
+    throw new Error((body && body.detail) || "Error (" + resp.status + ")");
   }
   await langupSetTokens(await resp.json());
 }
@@ -56,15 +71,34 @@ async function signInWithGoogle() {
 
   const redirectedTo = await chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true });
   const match = /[#&]id_token=([^&]+)/.exec(redirectedTo || "");
-  if (!match) throw new Error("Google не повернув id_token");
+  if (!match) throw new Error("Google didn't return an id_token");
 
   const resp = await fetch(`${LANGUP.API_BASE}/auth/google`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id_token: match[1] }),
   });
-  if (!resp.ok) throw new Error("Бекенд відхилив токен (" + resp.status + ")");
+  if (!resp.ok) throw new Error("Backend rejected the token (" + resp.status + ")");
   await langupSetTokens(await resp.json());
+}
+
+// Save the chosen native language onto the current account, then land on the profile.
+async function saveNativeLanguage(event) {
+  event.preventDefault();
+  const native_language = $("native-language").value;
+  if (!native_language || !currentUser) return;
+  $("lang-status").textContent = "Saving…";
+  const resp = await langupApiFetch(`/users/${currentUser.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ native_language }),
+  });
+  if (!resp.ok) {
+    $("lang-status").textContent = "Could not save your language. Try again.";
+    return;
+  }
+  await langupSetNativeLanguage(native_language);
+  $("lang-status").textContent = "";
+  renderProfile(await resp.json());
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -72,43 +106,46 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   $("password-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    setStatus("Входжу…");
+    setStatus("Signing in…");
     try {
       await passwordAuth("login");
-      render(await loadProfile());
+      routeAfterAuth(await loadProfile());
       setStatus("");
     } catch (err) {
-      setStatus("Помилка входу: " + err.message);
+      setStatus("Sign-in error: " + err.message);
     }
   });
 
   $("register-btn").addEventListener("click", async () => {
     if (!$("password-form").reportValidity()) return;
-    setStatus("Створюю акаунт…");
+    setStatus("Creating account…");
     try {
       await passwordAuth("register");
-      render(await loadProfile());
+      routeAfterAuth(await loadProfile());
       setStatus("");
     } catch (err) {
-      setStatus("Помилка реєстрації: " + err.message);
+      setStatus("Sign-up error: " + err.message);
     }
   });
 
   $("login-btn").addEventListener("click", async () => {
-    setStatus("Відкриваю Google…");
+    setStatus("Opening Google…");
     try {
       await signInWithGoogle();
-      render(await loadProfile());
+      routeAfterAuth(await loadProfile());
       setStatus("");
     } catch (err) {
-      setStatus("Помилка входу: " + err.message);
+      setStatus("Sign-in error: " + err.message);
     }
   });
 
+  $("lang-form").addEventListener("submit", saveNativeLanguage);
+
   $("logout-btn").addEventListener("click", async () => {
     await langupLogout();
-    render(null);
+    currentUser = null;
+    showView("login-view");
   });
 
-  render(await loadProfile());
+  routeAfterAuth(await loadProfile());
 });
