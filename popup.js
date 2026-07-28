@@ -55,31 +55,14 @@ async function passwordAuth(endpoint) {
   await langupSetTokens(await resp.json());
 }
 
-// Get a Google ID token via the extension auth flow, then exchange it with our backend.
+// Sign in with Google. The actual flow runs in the background service worker
+// (see background.js) because the popup can close mid-flow — especially on
+// Linux — which would abandon it silently. If the popup does survive, we get
+// the result here; if it closed, the worker still finished and stored the
+// tokens, so reopening the popup shows the signed-in state.
 async function signInWithGoogle() {
-  const redirectUri = chrome.identity.getRedirectURL();
-  const nonce = Math.random().toString(36).slice(2) + Date.now();
-  const params = new URLSearchParams({
-    client_id: LANGUP.GOOGLE_CLIENT_ID,
-    response_type: "id_token",
-    redirect_uri: redirectUri,
-    scope: "openid email profile",
-    nonce,
-    prompt: "select_account",
-  });
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-
-  const redirectedTo = await chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true });
-  const match = /[#&]id_token=([^&]+)/.exec(redirectedTo || "");
-  if (!match) throw new Error("Google didn't return an id_token");
-
-  const resp = await fetch(`${LANGUP.API_BASE}/auth/google`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id_token: match[1] }),
-  });
-  if (!resp.ok) throw new Error("Backend rejected the token (" + resp.status + ")");
-  await langupSetTokens(await resp.json());
+  const res = await chrome.runtime.sendMessage({ type: "GOOGLE_SIGN_IN" });
+  if (!res || !res.ok) throw new Error((res && res.error) || "Google sign-in failed");
 }
 
 // Save the chosen native language onto the current account, then land on the profile.

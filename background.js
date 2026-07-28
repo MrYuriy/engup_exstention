@@ -79,9 +79,55 @@ async function captureWord({ word, language, sentence, url, title }) {
   return { ok: false, error: String(resp.status) };
 }
 
+// Google sign-in runs HERE, in the service worker — not in the popup. On Linux
+// the popup closes the moment the Google auth window takes focus, which killed
+// the popup-based flow silently (its JS context was gone before the token came
+// back). The worker survives, so the flow completes and tokens are stored; the
+// popup just reads them when it reopens.
+async function googleSignIn() {
+  const redirectUri = chrome.identity.getRedirectURL();
+  const nonce = Math.random().toString(36).slice(2) + Date.now();
+  const params = new URLSearchParams({
+    client_id: LANGUP.GOOGLE_CLIENT_ID,
+    response_type: "id_token",
+    redirect_uri: redirectUri,
+    scope: "openid email profile",
+    nonce,
+    prompt: "select_account",
+  });
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+
+  let redirectedTo;
+  try {
+    redirectedTo = await chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true });
+  } catch (e) {
+    return { ok: false, error: (e && e.message) || "auth_flow_failed" };
+  }
+  const match = /[#&]id_token=([^&]+)/.exec(redirectedTo || "");
+  if (!match) return { ok: false, error: "no_id_token" };
+
+  const resp = await fetch(`${LANGUP.API_BASE}/auth/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id_token: match[1] }),
+  });
+  if (!resp.ok) return { ok: false, error: "backend_" + resp.status };
+  await langupSetTokens(await resp.json());
+  // The popup may have closed during the flow; a badge signals "signed in —
+  // reopen me" so the user isn't left staring at a blank icon.
+  flashBadge("✓", "#2f9e44");
+  return { ok: true };
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "CAPTURE_WORD") {
     captureWord(message.payload).then(sendResponse);
     return true; // keep the channel open for the async response
+  }
+  if (message?.type === "GOOGLE_SIGN_IN") {
+    googleSignIn()
+      .then(sendResponse)
+      .catch((e) => sendResponse({ ok: false, error: (e && e.message) || String(e) }));
+    return true;
   }
 });
