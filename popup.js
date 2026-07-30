@@ -50,7 +50,14 @@ async function passwordAuth(endpoint) {
   });
   if (!resp.ok) {
     const body = await resp.json().catch(() => null);
-    throw new Error((body && body.detail) || "Error (" + resp.status + ")");
+    // detail is a string for our errors, or a 422 validation array (e.g. a weak
+    // password) — surface the first field message in that case.
+    let msg = "Error (" + resp.status + ")";
+    if (typeof body?.detail === "string") msg = body.detail;
+    else if (Array.isArray(body?.detail) && body.detail[0]?.msg) {
+      msg = body.detail[0].msg.replace(/^Value error, /, "");
+    }
+    throw new Error(msg);
   }
   await langupSetTokens(await resp.json());
 }

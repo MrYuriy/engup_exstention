@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LangUp",
-  "version": "2.0",
+  "version": "2.1",
   "description": "Save words from web pages to LangUp and learn them in context.",
   "permissions": ["storage", "identity", "contextMenus"],
   "host_permissions": ["https://langup.piatek-magazyn.com/*"],
