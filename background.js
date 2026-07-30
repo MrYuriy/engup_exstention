@@ -32,7 +32,8 @@ chrome.contextMenus.onClicked.addListener(async (info) => {
   // viewer, so default to "en" (change here if you mostly read other languages).
   const res = await captureWord({ word, language: "en" });
   if (res.ok) flashBadge("✓", "#2f9e44");
-  else if (res.error === "not_authed" || res.error === "no_native_language") flashBadge("!", "#e8590c");
+  else if (res.error === "not_authed" || res.error === "no_native_language" || res.error === "email_not_verified")
+    flashBadge("!", "#e8590c");
   else flashBadge("✗", "#e03131");
 });
 
@@ -74,6 +75,9 @@ async function captureWord({ word, language, sentence, url, title }) {
     if (body.detail === "native_language_required") {
       await langupSetNativeLanguage(null);
       return { ok: false, error: "no_native_language" };
+    }
+    if (body.detail === "email_not_verified") {
+      return { ok: false, error: "email_not_verified" };
     }
   }
   return { ok: false, error: String(resp.status) };

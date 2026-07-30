@@ -17,6 +17,9 @@ function renderProfile(user) {
   $("p-email").textContent = user.email;
   $("avatar").textContent = (user.full_name || user.email || "?").trim().charAt(0).toUpperCase();
   showView("profile-view");
+  // Saving is blocked until the email is confirmed; nudge the user to the site,
+  // where the confirmation email can be resent.
+  setStatus(user.is_email_verified ? "" : "Confirm your email on langup to start saving words.");
 }
 
 // After any successful sign-in decide where to land: a brand-new account has no

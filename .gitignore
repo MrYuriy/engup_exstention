@@ -1,0 +1,7 @@
+# Build artifacts — packaged extension archives are generated, not source.
+*.zip
+*.crx
+*.tar.gz
+
+# Signing key for CRX packaging — must never be committed.
+*.pem
