@@ -79,6 +79,10 @@ async function captureWord({ word, language, sentence, url, title }) {
     if (body.detail === "email_not_verified") {
       return { ok: false, error: "email_not_verified" };
     }
+    if (body.detail === "word_not_recognized") {
+      // The AI judged the selection not to be a real word — don't save junk.
+      return { ok: false, error: "word_not_recognized" };
+    }
   }
   return { ok: false, error: String(resp.status) };
 }

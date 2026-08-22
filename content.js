@@ -76,6 +76,10 @@ function createButton(x, y, selectedText, sentence) {
           // Gentle, one-time nudge: the word is NOT saved until a language is set.
           setButtonState("🌐", "#f08c00");
           showBubble("Almost there! Open LangUp (click the icon) and choose your native language — we need it to translate your words.");
+        } else if (res.error === "word_not_recognized") {
+          // Not a real word: nothing was saved (keeps the dictionary clean).
+          setButtonState("✗", "#e8590c");
+          showBubble("That doesn't look like a real word, so it wasn't saved.");
         } else {
           setButtonState("✗", "#e03131");
         }
