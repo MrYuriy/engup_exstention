@@ -13,41 +13,42 @@
 
     <!-- LOGIN -->
     <section id="login-view" class="view hidden">
-      <p class="hint">Sign in to save highlighted words to your dictionary.</p>
+      <p class="hint" data-i18n="login_hint">Sign in to save highlighted words to your dictionary.</p>
 
       <form id="password-form" class="form">
-        <input id="email" type="email" placeholder="Email" autocomplete="email" required />
+        <input id="email" type="email" placeholder="Email" data-i18n-placeholder="email" autocomplete="email" required />
         <input
           id="password"
           type="password"
           placeholder="Password"
+          data-i18n-placeholder="password"
           autocomplete="current-password"
           minlength="8"
           required
         />
-        <button id="password-login-btn" type="submit" class="btn btn--primary">Sign in</button>
-        <button id="register-btn" type="button" class="btn btn--ghost">Sign up</button>
+        <button id="password-login-btn" type="submit" class="btn btn--primary" data-i18n="signin">Sign in</button>
+        <button id="register-btn" type="button" class="btn btn--ghost" data-i18n="signup">Sign up</button>
       </form>
 
-      <div class="divider"><span>or</span></div>
+      <div class="divider"><span data-i18n="or">or</span></div>
 
       <button id="login-btn" class="btn btn--google">
-        <span class="g">G</span> Sign in with Google
+        <span class="g">G</span> <span data-i18n="google">Sign in with Google</span>
       </button>
       <p id="status" class="status"></p>
       <details class="setup">
-        <summary>OAuth setup</summary>
-        <p>Add this Redirect URI to your Google OAuth client:</p>
+        <summary data-i18n="oauth_setup">OAuth setup</summary>
+        <p data-i18n="oauth_hint">Add this Redirect URI to your Google OAuth client:</p>
         <code id="redirect-uri">—</code>
       </details>
     </section>
 
     <!-- NATIVE LANGUAGE (new accounts only) -->
     <section id="lang-view" class="view hidden">
-      <p class="hint">Choose your native language. We use it to translate saved words for you.</p>
+      <p class="hint" data-i18n="native_hint">Choose your native language. We use it to translate saved words for you.</p>
       <form id="lang-form" class="form">
         <select id="native-language" required>
-          <option value="" disabled selected>Select your native language…</option>
+          <option value="" disabled selected data-i18n="select_native">Select your native language…</option>
           <option value="uk">Ukrainian</option>
           <option value="pl">Polish</option>
           <option value="en">English</option>
@@ -57,7 +58,7 @@
           <option value="it">Italian</option>
           <option value="pt">Portuguese</option>
         </select>
-        <button type="submit" class="btn btn--primary">Continue</button>
+        <button type="submit" class="btn btn--primary" data-i18n="continue">Continue</button>
       </form>
       <p id="lang-status" class="status"></p>
     </section>
@@ -71,11 +72,12 @@
           <span id="p-email" class="muted">—</span>
         </div>
       </div>
-      <p class="tip">Highlight a word on any page and click “+” to save it.</p>
-      <button id="logout-btn" class="btn btn--ghost">Sign out</button>
+      <p class="tip" data-i18n="tip">Highlight a word on any page and click “+” to save it.</p>
+      <button id="logout-btn" class="btn btn--ghost" data-i18n="signout">Sign out</button>
     </section>
 
     <script src="config.js"></script>
+    <script src="i18n.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

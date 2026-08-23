@@ -13,13 +13,13 @@ function showView(id) {
 }
 
 function renderProfile(user) {
-  $("p-name").textContent = user.full_name || "No name";
+  $("p-name").textContent = user.full_name || extT("no_name");
   $("p-email").textContent = user.email;
   $("avatar").textContent = (user.full_name || user.email || "?").trim().charAt(0).toUpperCase();
   showView("profile-view");
   // Saving is blocked until the email is confirmed; nudge the user to the site,
   // where the confirmation email can be resent.
-  setStatus(user.is_email_verified ? "" : "Confirm your email on langup to start saving words.");
+  setStatus(user.is_email_verified ? "" : extT("confirm_email"));
 }
 
 // After any successful sign-in decide where to land: a brand-new account has no
@@ -31,6 +31,12 @@ function routeAfterAuth(user) {
   // Mirror the account's language into storage so the background worker can
   // gate word saves without an extra round-trip.
   langupSetNativeLanguage(user.native_language);
+  // The popup's own language follows the account: on the first open storage may
+  // not have held it yet when i18n initialised, so apply it now.
+  if (user.native_language && EXT_STRINGS[user.native_language]) {
+    EXT_LANG = user.native_language;
+    extApplyI18n();
+  }
   if (!user.native_language) return showView("lang-view");
   renderProfile(user);
 }
@@ -72,7 +78,7 @@ async function passwordAuth(endpoint) {
 // tokens, so reopening the popup shows the signed-in state.
 async function signInWithGoogle() {
   const res = await chrome.runtime.sendMessage({ type: "GOOGLE_SIGN_IN" });
-  if (!res || !res.ok) throw new Error((res && res.error) || "Google sign-in failed");
+  if (!res || !res.ok) throw new Error((res && res.error) || extT("google_failed"));
 }
 
 // Save the chosen native language onto the current account, then land on the profile.
@@ -80,55 +86,59 @@ async function saveNativeLanguage(event) {
   event.preventDefault();
   const native_language = $("native-language").value;
   if (!native_language || !currentUser) return;
-  $("lang-status").textContent = "Saving…";
+  $("lang-status").textContent = extT("saving");
   const resp = await langupApiFetch(`/users/${currentUser.id}`, {
     method: "PATCH",
     body: JSON.stringify({ native_language }),
   });
   if (!resp.ok) {
-    $("lang-status").textContent = "Could not save your language. Try again.";
+    $("lang-status").textContent = extT("lang_save_fail");
     return;
   }
+  EXT_LANG = EXT_STRINGS[native_language] ? native_language : EXT_LANG; // popup now follows the new choice
+  extApplyI18n();
   await langupSetNativeLanguage(native_language);
   $("lang-status").textContent = "";
   renderProfile(await resp.json());
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  await extI18nInit();
+  extApplyI18n();
   $("redirect-uri").textContent = chrome.identity.getRedirectURL();
 
   $("password-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    setStatus("Signing in…");
+    setStatus(extT("signing_in"));
     try {
       await passwordAuth("login");
       routeAfterAuth(await loadProfile());
       setStatus("");
     } catch (err) {
-      setStatus("Sign-in error: " + err.message);
+      setStatus(extT("signin_error", { msg: err.message }));
     }
   });
 
   $("register-btn").addEventListener("click", async () => {
     if (!$("password-form").reportValidity()) return;
-    setStatus("Creating account…");
+    setStatus(extT("creating"));
     try {
       await passwordAuth("register");
       routeAfterAuth(await loadProfile());
       setStatus("");
     } catch (err) {
-      setStatus("Sign-up error: " + err.message);
+      setStatus(extT("signup_error", { msg: err.message }));
     }
   });
 
   $("login-btn").addEventListener("click", async () => {
-    setStatus("Opening Google…");
+    setStatus(extT("opening_google"));
     try {
       await signInWithGoogle();
       routeAfterAuth(await loadProfile());
       setStatus("");
     } catch (err) {
-      setStatus("Sign-in error: " + err.message);
+      setStatus(extT("signin_error", { msg: err.message }));
     }
   });
 

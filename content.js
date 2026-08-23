@@ -2,6 +2,10 @@
 // send the capture to the background worker (which talks to the API).
 let button = null;
 
+// Resolve the UI language for bubbles from the stored native language (i18n.js
+// runs first as a content script). Fire-and-forget: defaults to English until ready.
+extI18nInit();
+
 function pageLanguage() {
   const raw = document.documentElement.lang || navigator.language || "en";
   const code = raw.slice(0, 2).toLowerCase();
@@ -71,15 +75,15 @@ function createButton(x, y, selectedText, sentence) {
           setButtonState("✓", "#2f9e44");
         } else if (res.error === "not_authed") {
           setButtonState("🔒", "#e8590c");
-          showBubble("Sign in to LangUp first — click the extension icon.");
+          showBubble(extT("bubble_signin"));
         } else if (res.error === "no_native_language") {
           // Gentle, one-time nudge: the word is NOT saved until a language is set.
           setButtonState("🌐", "#f08c00");
-          showBubble("Almost there! Open LangUp (click the icon) and choose your native language — we need it to translate your words.");
+          showBubble(extT("bubble_native"));
         } else if (res.error === "word_not_recognized") {
           // Not a real word: nothing was saved (keeps the dictionary clean).
           setButtonState("✗", "#e8590c");
-          showBubble("That doesn't look like a real word, so it wasn't saved.");
+          showBubble(extT("bubble_not_word"));
         } else {
           setButtonState("✗", "#e03131");
         }
