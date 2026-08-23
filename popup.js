@@ -16,6 +16,7 @@ function renderProfile(user) {
   $("p-name").textContent = user.full_name || extT("no_name");
   $("p-email").textContent = user.email;
   $("avatar").textContent = (user.full_name || user.email || "?").trim().charAt(0).toUpperCase();
+  $("ui-language").value = EXT_LANG;
   showView("profile-view");
   // Saving is blocked until the email is confirmed; nudge the user to the site,
   // where the confirmation email can be resent.
@@ -31,9 +32,10 @@ function routeAfterAuth(user) {
   // Mirror the account's language into storage so the background worker can
   // gate word saves without an extra round-trip.
   langupSetNativeLanguage(user.native_language);
-  // The popup's own language follows the account: on the first open storage may
-  // not have held it yet when i18n initialised, so apply it now.
-  if (user.native_language && EXT_STRINGS[user.native_language]) {
+  // The popup's own language follows the account's native language on the first
+  // open (storage may not have held it yet when i18n initialised) — unless the
+  // user has explicitly chosen a UI language, which always wins.
+  if (!EXT_UI_LANG_EXPLICIT && user.native_language && EXT_STRINGS[user.native_language]) {
     EXT_LANG = user.native_language;
     extApplyI18n();
   }
@@ -95,8 +97,10 @@ async function saveNativeLanguage(event) {
     $("lang-status").textContent = extT("lang_save_fail");
     return;
   }
-  EXT_LANG = EXT_STRINGS[native_language] ? native_language : EXT_LANG; // popup now follows the new choice
-  extApplyI18n();
+  if (!EXT_UI_LANG_EXPLICIT && EXT_STRINGS[native_language]) {
+    EXT_LANG = native_language; // popup follows native unless a UI language was chosen
+    extApplyI18n();
+  }
   await langupSetNativeLanguage(native_language);
   $("lang-status").textContent = "";
   renderProfile(await resp.json());
@@ -143,6 +147,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   $("lang-form").addEventListener("submit", saveNativeLanguage);
+
+  // Interface-language override, independent of the account's native language.
+  $("ui-language").addEventListener("change", (e) => extSetUiLang(e.target.value));
 
   $("logout-btn").addEventListener("click", async () => {
     await langupLogout();

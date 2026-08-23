@@ -22,6 +22,7 @@ const EXT_STRINGS = {
     "continue": "Continue",
     "tip": "Highlight a word on any page and click “+” to save it.",
     "signout": "Sign out",
+    "ui_language": "Interface language",
     "no_name": "No name",
     "confirm_email": "Confirm your email on langup to start saving words.",
     "google_failed": "Google sign-in failed",
@@ -51,6 +52,7 @@ const EXT_STRINGS = {
     "continue": "Продовжити",
     "tip": "Виділіть слово на будь-якій сторінці та натисніть «+», щоб зберегти.",
     "signout": "Вийти",
+    "ui_language": "Мова інтерфейсу",
     "no_name": "Без імені",
     "confirm_email": "Підтвердьте email на langup, щоб зберігати слова.",
     "google_failed": "Не вдалося увійти через Google",
@@ -80,6 +82,7 @@ const EXT_STRINGS = {
     "continue": "Dalej",
     "tip": "Zaznacz słowo na dowolnej stronie i kliknij „+”, aby je zapisać.",
     "signout": "Wyloguj się",
+    "ui_language": "Język interfejsu",
     "no_name": "Brak imienia",
     "confirm_email": "Potwierdź email na langup, aby zapisywać słowa.",
     "google_failed": "Logowanie przez Google nie powiodło się",
@@ -109,6 +112,7 @@ const EXT_STRINGS = {
     "continue": "Weiter",
     "tip": "Markiere ein Wort auf einer beliebigen Seite und klicke auf „+“, um es zu speichern.",
     "signout": "Abmelden",
+    "ui_language": "Oberflächensprache",
     "no_name": "Kein Name",
     "confirm_email": "Bestätige deine E-Mail auf langup, um Wörter zu speichern.",
     "google_failed": "Google-Anmeldung fehlgeschlagen",
@@ -138,6 +142,7 @@ const EXT_STRINGS = {
     "continue": "Continuar",
     "tip": "Resalta una palabra en cualquier página y haz clic en «+» para guardarla.",
     "signout": "Cerrar sesión",
+    "ui_language": "Idioma de la interfaz",
     "no_name": "Sin nombre",
     "confirm_email": "Confirma tu correo en langup para empezar a guardar palabras.",
     "google_failed": "Error al iniciar sesión con Google",
@@ -167,6 +172,7 @@ const EXT_STRINGS = {
     "continue": "Continuer",
     "tip": "Surlignez un mot sur n'importe quelle page et cliquez sur « + » pour l'enregistrer.",
     "signout": "Se déconnecter",
+    "ui_language": "Langue de l'interface",
     "no_name": "Sans nom",
     "confirm_email": "Confirmez votre e-mail sur langup pour enregistrer des mots.",
     "google_failed": "Échec de la connexion Google",
@@ -196,6 +202,7 @@ const EXT_STRINGS = {
     "continue": "Continua",
     "tip": "Evidenzia una parola su qualsiasi pagina e clicca «+» per salvarla.",
     "signout": "Esci",
+    "ui_language": "Lingua dell'interfaccia",
     "no_name": "Senza nome",
     "confirm_email": "Conferma la tua email su langup per iniziare a salvare parole.",
     "google_failed": "Accesso con Google non riuscito",
@@ -225,6 +232,7 @@ const EXT_STRINGS = {
     "continue": "Continuar",
     "tip": "Destaque uma palavra em qualquer página e clique em «+» para a guardar.",
     "signout": "Terminar sessão",
+    "ui_language": "Idioma da interface",
     "no_name": "Sem nome",
     "confirm_email": "Confirme o seu email no langup para começar a guardar palavras.",
     "google_failed": "Falha ao entrar com o Google",
@@ -242,16 +250,36 @@ const EXT_STRINGS = {
 };
 
 let EXT_LANG = "en";
+let EXT_UI_LANG_EXPLICIT = false; // true once the user has chosen a UI language
 
-// Resolve and cache the UI language from the stored native language.
+// Resolve and cache the UI language: an explicit choice (`ui_lang`) wins,
+// otherwise it follows the account's native language, otherwise English.
 async function extI18nInit() {
   try {
-    const { native_language } = await chrome.storage.local.get("native_language");
-    if (native_language && EXT_STRINGS[native_language]) EXT_LANG = native_language;
+    const { ui_lang, native_language } = await chrome.storage.local.get(["ui_lang", "native_language"]);
+    if (ui_lang && EXT_STRINGS[ui_lang]) {
+      EXT_LANG = ui_lang;
+      EXT_UI_LANG_EXPLICIT = true;
+    } else if (native_language && EXT_STRINGS[native_language]) {
+      EXT_LANG = native_language;
+    }
   } catch {
     /* storage unavailable (rare) — keep English */
   }
   return EXT_LANG;
+}
+
+// Persist an explicit UI-language choice and re-render the popup.
+async function extSetUiLang(lang) {
+  if (!EXT_STRINGS[lang]) return;
+  EXT_LANG = lang;
+  EXT_UI_LANG_EXPLICIT = true;
+  try {
+    await chrome.storage.local.set({ ui_lang: lang });
+  } catch {
+    /* ignore — the in-memory choice still applies for this session */
+  }
+  extApplyI18n();
 }
 
 // extT(key, params?) -> localized string; English is the fallback.
